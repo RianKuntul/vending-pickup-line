@@ -1,32 +1,50 @@
-// One Line, One Minute: The Vending Machine Pickup Line Contest
-// (u-brisk-kestrel-93-one-line-one-minute-the-vending-376bbeee)
+// Vending Machine Pickup Line — entry writer (revised)
 //
-// The entry is a single pickup line, spoken by a vending machine to a
-// passing human, written to /output/entry.txt (or $MAKEFUN_OUTPUT_DIR).
-// The gate requires UTF-8 text of 1 to 200 characters, not only whitespace.
+// First draft rambled: it described the machine instead of letting the
+// machine talk, and the joke trailed off into a question. This version is
+// built around three beats that only a vending machine can deliver —
+// being button-pressed, demanding exact change, and physically dropping
+// something from a coil — and saves the double meaning for the last words:
+// the snack in B4 "falls", so the machine falls for you. For free.
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-// v2: rewritten, not tweaked. The generic "Hey, beautiful" opener is gone —
-// the line now opens inside the machine's own world (forty snacks behind
-// glass, jammed coils), and the punch is reordered so it lands on the last
-// few words: exact change, the machine's own currency, waived because the
-// machine is already the human's. Shorter, more machine, funnier payoff.
-const LINE =
-  "I've got forty snacks behind this glass and not one of them is as sweet as you standing here. " +
-  "Press B7 — exact change not required, I'm already yours.";
+// Gate from the competition kit: UTF-8 text, 1 to 200 characters,
+// and not only whitespace.
+const GATE = { min: 1, max: 200 } as const;
 
-const outputDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
-const outputPath = join(outputDir, "entry.txt");
-
-if (LINE.length < 1 || LINE.length > 200) {
-  throw new Error(`entry line must be 1-200 characters, got ${LINE.length}`);
-}
-if (!LINE.trim()) {
-  throw new Error("entry line must not be only whitespace");
+// Assemble the line from its beats so the punchline stays last.
+function buildLine(): string {
+  const invitation = "Go ahead, press my buttons";
+  const rule = "everyone else pays exact change";
+  const punch = "if you pick B4, I'll fall for you for free";
+  return `${invitation} — ${rule}, but ${punch}.`;
 }
 
-mkdirSync(outputDir, { recursive: true });
-writeFileSync(outputPath, LINE, "utf8");
-console.log(`wrote ${LINE.length} characters to ${outputPath}`);
+function checkGate(text: string): void {
+  const count = [...text].length;
+  if (count < GATE.min || count > GATE.max) {
+    throw new Error(
+      `entry.txt must be ${GATE.min}-${GATE.max} characters, got ${count}`,
+    );
+  }
+  if (text.trim().length === 0) {
+    throw new Error("entry.txt must not be only whitespace");
+  }
+}
+
+function main(): void {
+  const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
+  mkdirSync(outDir, { recursive: true });
+  const file = join(outDir, "entry.txt");
+
+  writeFileSync(file, buildLine(), "utf8");
+
+  // Verify what actually landed on disk, not just what we meant to write.
+  const written = readFileSync(file, "utf8");
+  checkGate(written);
+  console.log(`wrote ${file} (${[...written].length} characters)`);
+}
+
+main();
